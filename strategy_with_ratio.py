@@ -54,18 +54,18 @@ treasury_weight = 0.50
 
 # Calculate Portfolio Daily Returns for Mixed Portfolio
 merged_data['Mixed_Portfolio_Return'] = (
-                                                btc_weight * merged_data['BTC_ROI'] +
-                                                eth_weight * merged_data['ETH_ROI'] +
-                                                xrp_weight * merged_data['XRP_ROI'] +
-                                                ltc_weight * merged_data['LTC_ROI'] +
-                                                link_weight * merged_data['LINK_ROI'] +
-                                                treasury_weight * merged_data['5Yr_ROI']
-                                        ) / 100
+    btc_weight * merged_data['BTC_ROI'] +
+    eth_weight * merged_data['ETH_ROI'] +
+    xrp_weight * merged_data['XRP_ROI'] +
+    ltc_weight * merged_data['LTC_ROI'] +
+    link_weight * merged_data['LINK_ROI'] +
+    treasury_weight * merged_data['5Yr_ROI']
+) / 100
 
 # Calculate Average Crypto Return
 merged_data['Avg_Crypto'] = (
-                                merged_data[['BTC_ROI', 'ETH_ROI', 'XRP_ROI', 'LTC_ROI', 'LINK_ROI']].mean(axis=1)
-                            ) / 100
+    merged_data[['BTC_ROI', 'ETH_ROI', 'XRP_ROI', 'LTC_ROI', 'LINK_ROI']].mean(axis=1)
+) / 100
 
 # Calculate Cumulative Returns for BTC, ETH, XRP, LTC, LINK, and Mixed Portfolio
 merged_data['BTC_Cumulative_Return'] = (1 + merged_data['BTC_ROI'] / 100).cumprod() - 1
@@ -116,6 +116,15 @@ for strategy in ['CNN-L', 'DNN-L', 'LSTM-L', 'DQ-L', 'PPO-L', 'DQ_CL-L', 'PPO_CL
                  'CNN-B', 'DNN-B', 'LSTM-B', 'DQ-B', 'PPO-B', 'DQ_CL-B', 'PPO_CL-B']:
     strategy_cumulative_returns[strategy + '_Cumulative_Return'] = (1 + merged_data[strategy] / 100).cumprod() - 1
 
+# Convert annual risk-free rate to daily rate
+def annual_to_daily_rate(annual_rate):
+    TRADING_DAYS = 252
+    return (1 + annual_rate) ** (1 / TRADING_DAYS) - 1
+
+# Set the annual risk-free rate and convert it to daily
+risk_free_rate_annual = 0.05
+risk_free_rate_daily = annual_to_daily_rate(risk_free_rate_annual)
+
 # Set portfolio beta for Treynor Ratio calculation (assuming beta=1.0 for simplicity)
 portfolio_beta = 1.0
 
@@ -127,8 +136,8 @@ treynor_ratios = {}
 for strategy in ['CNN-L', 'DNN-L', 'LSTM-L', 'DQ-L', 'PPO-L', 'DQ_CL-L', 'PPO_CL-L',
                  'CNN-S', 'DNN-S', 'LSTM-S', 'DQ-S', 'PPO-S', 'DQ_CL-S', 'PPO_CL-S',
                  'CNN-B', 'DNN-B', 'LSTM-B', 'DQ-B', 'PPO-B', 'DQ_CL-B', 'PPO_CL-B']:
-    # Daily excess returns over the risk-free rate (5 Yr yield)
-    excess_returns = merged_data[strategy] - merged_data['5 Yr']
+    # Daily excess returns over the risk-free rate (converted to daily)
+    excess_returns = merged_data[strategy] - risk_free_rate_daily
 
     # Calculate Sharpe Ratio
     average_excess_return = excess_returns.mean()
@@ -159,7 +168,6 @@ now = datetime.now()
 timestamp = now.strftime("%Y%m%d%H%M%S")
 
 # Save strategy cumulative returns to CSV
-
 output_file_path_cumulative = f'output\\{year}_cumulative_return_{timestamp}.csv'
 strategy_cumulative_returns.to_csv(output_file_path_cumulative, index=False)
 print(f"Saved cumulative returns to {output_file_path_cumulative}")
