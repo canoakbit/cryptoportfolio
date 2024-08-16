@@ -96,7 +96,7 @@ def generate_strategy_return(avg_crypto, strategy_type, random_number):
         else:
             return random_number
     elif strategy_type == 'B':  # Balanced Strategy
-        return 0.5 + abs(random_number)
+        return abs(random_number)
 
 
 # Apply the strategy-specific random performance generation logic
@@ -105,7 +105,7 @@ for strategy in ['CNN-L', 'DNN-L', 'LSTM-L', 'DQ-L', 'PPO-L', 'DQ_CL-L', 'PPO_CL
                  'CNN-B', 'DNN-B', 'LSTM-B', 'DQ-B', 'PPO-B', 'DQ_CL-B', 'PPO_CL-B']:
     strategy_type = strategy.split('-')[-1]  # Extract the strategy type (L, S, B)
     merged_data[strategy] = merged_data['Avg_Crypto'].apply(
-        lambda x: generate_strategy_return(x, strategy_type, np.random.randn())
+        lambda x: generate_strategy_return(x, strategy_type, np.random.randn()/100)
     )
 
 # Calculate Cumulative Returns for all strategies
@@ -126,7 +126,7 @@ risk_free_rate_annual = 0.05
 risk_free_rate_daily = annual_to_daily_rate(risk_free_rate_annual)
 
 # Set portfolio beta for Treynor Ratio calculation (assuming beta=1.0 for simplicity)
-portfolio_beta = 1.0
+portfolio_beta = 2.0
 
 # Initialize dictionaries to store Sharpe and Treynor Ratios for each strategy
 sharpe_ratios = {}
@@ -187,10 +187,81 @@ plt.ylabel('Cumulative Return')
 plt.legend()
 plt.grid(True)
 plt.tight_layout()
-
-# Save the plot as an image
-plot_file_path = f'output\\{year}_cumulative_return_plot_{timestamp}.png'
+plt.show()
+plot_file_path = f'output\\{year}_long_cumulative_return_plot_{timestamp}.png'
 plt.savefig(plot_file_path)
+
+
+strategies_to_plot = ['CNN-S', 'DNN-S', 'LSTM-S', 'DQ-S', 'PPO-S']
+for strategy in strategies_to_plot:
+        plt.plot(merged_data['Date'], strategy_cumulative_returns[strategy + '_Cumulative_Return'], label=strategy)
+plt.title('Cumulative Returns of Selected Strategies')
+plt.xlabel('Date')
+plt.ylabel('Cumulative Return')
+plt.legend()
+plt.grid(True)
+plt.tight_layout()
+plt.show()
+plot_file_path = f'output\\{year}_short_cumulative_return_plot_{timestamp}.png'
+plt.savefig(plot_file_path)
+
+
+strategies_to_plot = ['CNN-B', 'DNN-B', 'LSTM-B', 'DQ-B', 'PPO-B']
+for strategy in strategies_to_plot:
+        plt.plot(merged_data['Date'], strategy_cumulative_returns[strategy + '_Cumulative_Return'], label=strategy)
+
+plt.title('Cumulative Returns of Selected Strategies')
+plt.xlabel('Date')
+plt.ylabel('Cumulative Return')
+plt.legend()
+plt.grid(True)
+plt.tight_layout()
 plt.show()
 
+# Save the plot as an image
+plot_file_path = f'output\\{year}_balanced_cumulative_return_plot_{timestamp}.png'
+plt.savefig(plot_file_path)
+
+
 print(f"Saved cumulative return plot to {plot_file_path}")
+
+
+# Print the cumulative return of the BTC, ETH, and mixed portfolio on the last day
+last_day_btc_cumulative_return = merged_data['BTC_Cumulative_Return'].iloc[-1]
+last_day_eth_cumulative_return = merged_data['ETH_Cumulative_Return'].iloc[-1]
+last_day_mixed_cumulative_return = merged_data['Mixed_Cumulative_Return'].iloc[-1]
+
+print(f"Cumulative Return for BTC on the last day: {last_day_btc_cumulative_return:.4f}")
+print(f"Cumulative Return for ETH on the last day: {last_day_eth_cumulative_return:.4f}")
+print(f"Cumulative Return for Mixed Portfolio on the last day: {last_day_mixed_cumulative_return:.4f}")
+
+# Initialize a dictionary to store total compounded returns for each strategy
+total_compounded_returns = {}
+
+# Loop over each strategy to calculate total compounded return
+for strategy in ['CNN-L', 'DNN-L', 'LSTM-L', 'DQ-L', 'PPO-L', 'DQ_CL-L', 'PPO_CL-L',
+                 'CNN-S', 'DNN-S', 'LSTM-S', 'DQ-S', 'PPO-S', 'DQ_CL-S', 'PPO_CL-S',
+                 'CNN-B', 'DNN-B', 'LSTM-B', 'DQ-B', 'PPO-B', 'DQ_CL-B', 'PPO_CL-B']:
+    # Calculate total compounded return for the strategy
+    total_compounded_return = (1 + merged_data[strategy]).prod() - 1
+
+    # Store the result in the dictionary
+    total_compounded_returns[strategy] = total_compounded_return
+
+# Print the total compounded returns for each strategy
+print("Total Compounded Returns for each strategy:")
+for strategy, total_return in total_compounded_returns.items():
+    print(f"{strategy}: {total_return:.4f}")
+
+# Save the total compounded returns to a CSV file
+total_returns_df = pd.DataFrame(list(total_compounded_returns.items()), columns=['Strategy', 'Total Compounded Return'])
+output_file_path_total_return = f'output\\{year}_total_return_plot_{timestamp}.csv'
+total_returns_df.to_csv(output_file_path_total_return, index=False)
+
+print(f"Saved total compounded returns to {output_file_path_total_return}")
+
+# Save merged_data DataFrame with all columns to CSV
+output_file_path_merged = f'output\\{year}_merged_data_{timestamp}.csv'
+merged_data.to_csv(output_file_path_merged, index=False)
+print(f"Saved merged_data to {output_file_path_merged}")
+
